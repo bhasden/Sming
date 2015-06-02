@@ -1,46 +1,20 @@
 #include "NtpClient.h"
 
-NtpClient::NtpClient(NtpTimeResultCallback onTimeReceivedCb)
-{
-	this->onCompleted = onTimeReceivedCb;
-	this->server = NTP_SERVER_DEFAULT;
-	autoUpdateTimer.initializeMs(NTP_DEFAULT_AUTO_UPDATE_INTERVAL, Delegate<void()>(&NtpClient::requestTime, this));
-}
-
 NtpClient::NtpClient()
+ : NtpClient(NTP_SERVER_DEFAULT, 0, nullptr)
 {
-	autoUpdateTimer.initializeMs(NTP_DEFAULT_AUTO_UPDATE_INTERVAL, Delegate<void()>(&NtpClient::requestTime, this));
-	setAutoQuery(true);
-	requestTime();
 }
 
-NtpClient::NtpClient(String reqServer, int reqIntervalSeconds, NtpTimeResultCallback onTimeReceivedCb /* = NULL*/)
-//: NtpClient(reqServer, reqIntervalSeconds, Delegate<void(time_t ntptime)> (onTimeReceivedCb))
+NtpClient::NtpClient(NtpTimeResultDelegate onTimeReceivedCb)
+ : NtpClient(NTP_SERVER_DEFAULT, NTP_DEFAULT_AUTO_UPDATE_INTERVAL, onTimeReceivedCb)
 {
-	autoUpdateTimer.initializeMs(NTP_DEFAULT_AUTO_UPDATE_INTERVAL, Delegate<void()>(&NtpClient::requestTime, this));
-	this->server = reqServer;
-	this->onCompleted = onTimeReceivedCb;
-	if (!onTimeReceivedCb)
-	{
-		autoUpdateSystemClock = true;
-	}
-	if (reqIntervalSeconds == 0)
-	{
-		setAutoQuery(false);
-	}
-	else
-	{
-		setAutoQueryInterval(reqIntervalSeconds);
-		setAutoQuery(true);
-		requestTime();
-	}
 }
 
-NtpClient::NtpClient(String reqServer, int reqIntervalSeconds, Delegate<void(time_t ntptime)> delegateFunction /* = NULL */)
+NtpClient::NtpClient(String reqServer, int reqIntervalSeconds, NtpTimeResultDelegate delegateFunction /* = NULL */)
 {
-	autoUpdateTimer.initializeMs(NTP_DEFAULT_AUTO_UPDATE_INTERVAL, Delegate<void()>(&NtpClient::requestTime, this));
+	autoUpdateTimer.initializeMs(NTP_DEFAULT_AUTO_UPDATE_INTERVAL, TimerDelegate(&NtpClient::requestTime, this));
 	this->server = reqServer;
-	// this->delegateCompleted = delegateFunction;
+	this->delegateCompleted = delegateFunction;
 	if (!delegateFunction)
 	{
 		autoUpdateSystemClock = true;
@@ -88,10 +62,9 @@ int NtpClient::resolveServer()
 
 void NtpClient::requestTime()
 {
-	debugf("NtpClient request Time");
 	if (!WifiStation.isConnected())
 	{
-		connectionTimer.initializeMs(1000, Delegate<void()>(&NtpClient::requestTime, this)).startOnce();
+		connectionTimer.initializeMs(1000, TimerDelegate(&NtpClient::requestTime, this)).startOnce();
 		return;
 	}
 	if (serverAddress.isNull())
@@ -118,7 +91,6 @@ void NtpClient::requestTime()
 
 //	Send to server, serverAddress & port is set in connect
 	NtpClient::send((char*) packet, NTP_PACKET_SIZE);
-	debugf("NtpClient request sent");
 }
 
 void NtpClient::setNtpServer(String server)
@@ -163,8 +135,6 @@ void NtpClient::onReceive(pbuf *buf, IPAddress remoteIP, uint16_t remotePort)
 	// NTP_VERSION 3 has time in same location so accept that too
 	// Mode should be set to NTP_MODE_SERVER
 
-	debugf("NtpClient onReceive");
-
 	uint8_t versionMode = pbuf_get_at(buf, 0);
 	uint8_t ver = (versionMode & 0b00111000) >> 3;
 	uint8_t mode = (versionMode & 0x07);
@@ -184,19 +154,12 @@ void NtpClient::onReceive(pbuf *buf, IPAddress remoteIP, uint16_t remotePort)
 
 		if (autoUpdateSystemClock)
 		{
-			debugf("NtpClient onreceive autoupdate");
-			SystemClock.setTime(epoch, true); // update systemclock utc value
+			SystemClock.setTime(epoch, eSCUtc); // update systemclock utc value
 		}
 
-		if (onCompleted != NULL)
-		{
-			debugf("NtpClient onreceive oncompleted");
-			this->onCompleted(*this, epoch);
-		}
 		if (delegateCompleted)
 		{
-			debugf("NtpClient onreceive delegated");
-			this->delegateCompleted(epoch);
+			this->delegateCompleted(*this, epoch);
 		}
 	}
 }

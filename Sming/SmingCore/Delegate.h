@@ -10,7 +10,6 @@
 
 #include <user_config.h>
 
-
 template<class ReturnType, typename... ParamsList>
 class IDelegateCaller
 {

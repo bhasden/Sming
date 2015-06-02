@@ -10,14 +10,19 @@
 
 #include "../Wiring/WiringFrameworkDependencies.h"
 #include "../Wiring/Stream.h"
+#include "../SmingCore/Delegate.h"
 
 #define UART_ID_0   0
 #define UART_ID_1   1
+
+// Delegate constructor usage: (&YourClass::method, this)
+typedef Delegate<void(Stream &self, uint16_t availableCount)> StreamDataAvailableDelegate;
 
 class HardwareSerial : public Stream
 {
 public:
 	HardwareSerial(const int uartPort);
+	~HardwareSerial() {}
 
 	void begin(const uint32_t baud = 9600);
 
@@ -30,11 +35,15 @@ public:
 
 	//void printf(const char *fmt, ...);
 	void systemDebugOutput(bool enabled);
+	void setCallback(StreamDataAvailableDelegate reqCallback);
+	void resetCallback();
 
 	static void IRAM_ATTR uart0_rx_intr_handler(void *para);
 
 private:
 	int uart;
+	static StreamDataAvailableDelegate HWSDelegates[2];
+
 };
 
 extern HardwareSerial Serial;

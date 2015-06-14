@@ -3,7 +3,8 @@
 #include "SerialReadingDelegateDemo.h"
 
 Timer procTimer;
-SerialReadingDelegateDemo delegateDemo;
+SerialReadingDelegateDemo delegateDemoClass;
+int helloCounter = 0;
 
 void sayHello()
 {
@@ -11,11 +12,8 @@ void sayHello()
 	Serial.print(" Time : ");
 	Serial.println(micros());
 	Serial.println();
-}
 
-void hwsDelegate(Stream& stream, unsigned short charCount)
-{
-
+	Serial.printf("This is Hello message %d \r\n", ++helloCounter);
 }
 
 void init()
@@ -27,10 +25,9 @@ void init()
 	/// Reading callback example:
 	//  * Option 1
 	//	Set Serial Callback to global routine:
-	//     void onDataCallback(Stream& stream, unsigned short charCount)
 	//	   Serial.setCallback(onDataCallback);
 
 	// 	* Option 2
 	//  Instantiate hwsDelegateDemo which includes Serial Delegate class
-	delegateDemo.begin();
+	delegateDemoClass.begin();
 }

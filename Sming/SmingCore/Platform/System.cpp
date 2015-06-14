@@ -34,7 +34,7 @@ bool SystemClass::isReady()
 	return state == eSS_Ready;
 }
 
-void SystemClass::onReady(SystemReadyCallback readyHandler)
+void SystemClass::onReady(SystemReadyDelegate readyHandler)
 {
 	readyHandlers.add(readyHandler);
 }
@@ -51,7 +51,7 @@ void SystemClass::setCpuFrequency(CpuFrequency freq)
 	else
 		REG_CLR_BIT(0x3ff00014, BIT(0));
 
-	os_update_cpu_frequency(freq);
+	ets_update_cpu_frequency(freq);
 }
 
 CpuFrequency SystemClass::getCpuFrequency()

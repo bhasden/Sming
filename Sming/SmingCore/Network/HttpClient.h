@@ -41,18 +41,19 @@ public:
 	bool downloadFile(String url, HttpClientCompletedCallback onCompleted = NULL);
 	bool downloadFile(String url, String saveFileName, HttpClientCompletedCallback onCompleted = NULL);
 
-	void setPostBody(String _method);
+	void setPostBody(const String& _method);
 	String getPostBody();
 
-	void setContentType(String _content_type);
-	String getContentType();
+	void setRequestHeader(const String name, const String value);
+	bool hasRequestHeader(const String name);
+	void setRequestContentType(String _content_type);
 
 	// Resulting HTTP status code
 	__forceinline int getReponseCode() { return code; }
 	__forceinline bool isSuccessful() { return (!writeError) && (code >= 200 && code <= 399); }
 
 	__forceinline bool isProcessing()  { return TcpClient::isProcessing(); }
-	__forceinline TcpClientState getState() { return TcpClient::getState(); }
+	__forceinline TcpClientState getConnectionState() { return TcpClient::getConnectionState(); }
 
 	String getResponseHeader(String headerName, String defaultValue = "");
 	DateTime getLastModifiedDate(); // Last-Modified header
@@ -68,17 +69,17 @@ protected:
 	void parseHeaders(pbuf* buf, int headerEnd);
 
 protected:
-	bool waitParse;
-	bool writeError;
+	bool waitParse = false;
+	bool writeError = false;
 
 private:
 	int code;
 	HttpClientCompletedCallback onCompleted;
 	HttpClientMode mode;
+	HashMap<String, String> requestHeaders;
 	HashMap<String, String> responseHeaders;
 
 	String responseStringData;
-	String content_type = "";
 	String body = "";
 	file_t saveFile;
 };
